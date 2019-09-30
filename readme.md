@@ -1,0 +1,2 @@
+# Laravel Table Queries
+
