@@ -143,8 +143,9 @@ class TableQueryBuilder
         }
     }
 
-    protected function applyFilters() {
-        foreach($this->options['filters'] as $column => $filter) {
+    protected function applyFilters()
+    {
+        foreach($this->options['filters'] ?? [] as $column => $filter) {
             $this->tableQuery = $this->filterByColumn($filter, $column);
         }
     }
