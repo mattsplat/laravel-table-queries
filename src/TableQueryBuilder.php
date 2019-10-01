@@ -109,6 +109,7 @@ class TableQueryBuilder
     {
         $this->build();
         $this->search();
+        $this->applyFilters();
 
         //$this->paginate();
         $this->order();
@@ -135,11 +136,16 @@ class TableQueryBuilder
      */
     protected function search($searchString = null, string $byColumn = '')
     {
-        $byColumn = $byColumn ?? $this->options['byColumn'] ?? null;
         $search = $searchString ?? $this->options['query'] ?? null;
 
         if (!empty($search)) {
-            !empty($byColumn) ? $this->filterByColumn($search, $byColumn) : $this->filterAllColumns($search);
+            $this->searchAllColumns($search);
+        }
+    }
+
+    protected function applyFilters() {
+        foreach($this->options['filters'] as $column => $filter) {
+            $this->tableQuery = $this->filterByColumn($filter, $column);
         }
     }
 
@@ -148,30 +154,37 @@ class TableQueryBuilder
      * @param $column
      * @return Builder
      */
-    protected function filterByColumn($search, $column)
+    protected function filterByColumn($filter, $column)
     {
-        return $this->tableQuery->where(function ($q) use ($search, $column) {
-            if (is_string($search)) {
+        return $this->tableQuery->where(function ($q) use ($filter, $column) {
+            if (!is_numeric($column) && is_string($filter)) {
                 if (in_array($column, $this->fields)) {
-                    $q->orWhere($this->modelTable . '.' . $column, 'LIKE', "%{$search}%");
+                    $q->where($this->modelTable . '.' . $column, 'LIKE', "%{$filter}%");
                 } else if ($key = array_search($column, array_column($this->relations, $column))) {
                     $relation = $this->relations[$key];
-                    $q->orWhere($relation['table'] . '.' . $relation['column'], 'LIKE', "%{$search}%");
+                    $q->where($relation['table'] . '.' . $relation['column'], 'LIKE', "%{$filter}%");
                 }
 
-            } else {
-                $start = Carbon::createFromFormat('Y-m-d', $search['start'])->startOfDay();
-                $end = Carbon::createFromFormat('Y-m-d', $search['end'])->endOfDay();
+            } else if(is_array($filter) && isset($filter['start'])){
+                $start = Carbon::createFromFormat('Y-m-d', $filter['start'])->startOfDay();
+                $end = Carbon::createFromFormat('Y-m-d', $filter['end'] ?? Carbon::now())->endOfDay();
 
                 $q->whereBetween($column, [$start, $end]);
+            } else if(is_numeric($column) && is_array($filter)) {
+                $this->handleFilter($column);
             }
         });
+    }
+
+    protected function handleFilter($filterArray)
+    {
+
     }
 
     /**
      * @param $search
      */
-    protected function filterAllColumns($search)
+    protected function searchAllColumns($search)
     {
         $this->tableQuery->where(function ($q) use ($search) {
             if (is_string($search)) {
@@ -249,6 +262,7 @@ class TableQueryBuilder
     /**
      * @param null $page
      * @param null $limit
+     * @return TableQueryBuilder
      */
     public function paginate($page = null, $limit = null)
     {
@@ -258,6 +272,21 @@ class TableQueryBuilder
         $limit = !empty($limit) ? $limit : 10;
         $this->tableQuery->limit($limit)
             ->skip($limit * (($page ?? 1) - 1));
+
+        return $this;
     }
 
+    /**
+     * @return $this
+     */
+    protected function decodeFilters()
+    {
+        if (empty($this->options['filters'])) {
+            $this->options['filters'] =  [];
+        }
+
+        $this->options['filters'] = json_decode(base64_decode($this->options['filters']), true);
+
+        return $this;
+    }
 }
