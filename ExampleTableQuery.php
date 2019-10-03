@@ -37,7 +37,7 @@ class ExampleTableQuery
             ->get(); // instance of builder is returned
 
 
-
+        /// at this point you can do whatever you need to do with the query
         $results = $results->paginate();
         return $results;
     }
