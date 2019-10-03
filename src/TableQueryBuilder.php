@@ -145,7 +145,8 @@ class TableQueryBuilder
 
     protected function applyFilters()
     {
-        foreach($this->options['filters'] ?? [] as $column => $filter) {
+        if(empty($this->options['filters']) || !is_array($this->options['filters'])) return;
+        foreach($this->options['filters'] as $column => $filter) {
             $this->tableQuery = $this->filterByColumn($filter, $column);
         }
     }
@@ -166,20 +167,16 @@ class TableQueryBuilder
                     $q->where($relation['table'] . '.' . $relation['column'], 'LIKE', "%{$filter}%");
                 }
 
-            } else if(is_array($filter) && isset($filter['start'])){
-                $start = Carbon::createFromFormat('Y-m-d', $filter['start'])->startOfDay();
-                $end = Carbon::createFromFormat('Y-m-d', $filter['end'] ?? Carbon::now())->endOfDay();
-
-                $q->whereBetween($column, [$start, $end]);
-            } else if(is_numeric($column) && is_array($filter)) {
+            } else if(is_numeric($column) && is_string($filter)) {
                 $this->handleFilter($column);
             }
         });
     }
 
-    protected function handleFilter($filterArray)
+    protected function handleFilter($filter)
     {
-
+        $filter = new TableFilter($filter);
+        $this->tableQuery = $filter->toQuery($this->tableQuery);
     }
 
     /**
@@ -195,7 +192,7 @@ class TableQueryBuilder
                     }
                 }
                 foreach ($this->relations as $relation) {
-                    $q->orWhere($relation['table'] . '.' . $relation['column'], 'LIKE', "%{$search}%");
+                    $q->orWhere($relation->table . '.' . $relation->column, 'LIKE', "%{$search}%");
                 }
             }
         });
