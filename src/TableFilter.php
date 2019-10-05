@@ -45,12 +45,12 @@ class TableFilter
             $this->value = ['start' => $segments[2], 'end' => $segments[3]];
         }
         if(!in_array($this->operator, $this->allowedOperators) &&
-            (!in_array(array_keys($this->allowedOperators)) || is_numeric($this->operator) )) {
+            (!in_array($this->operator, array_keys($this->allowedOperators)) || is_numeric($this->operator) )) {
             throw new \Exception("Invalid Filter Format {$filter}");
         }
 
 
-        if(in_array(array_keys($this->allowedOperators))) {
+        if(in_array($this->operator, array_keys($this->allowedOperators), 1)) {
             $this->operator = $this->allowedOperators[$this->operator];
         }
 
