@@ -5,8 +5,8 @@ namespace MattSplat\TableQueries\Tests;
 
 
 
-use Illuminate\Support\Facades\DB;
 use MattSplat\TableQueries\TableFilter;
+use MattSplat\TableQueries\Tests\TestClasses\Models\TestModel;
 use PHPUnit\Framework\TestCase;
 
 class FilterTest extends TestCase
@@ -59,4 +59,11 @@ class FilterTest extends TestCase
         return $this->assertEquals(21, $filter->value);
     }
 
+    /** @test */
+    public function it_builds_query()
+    {
+        $filter = new TableFilter('really_bad_name:>:21',':');
+
+        return $this->assertEquals(null, $filter->toQuery(TestModel::query()));
+    }
 }
