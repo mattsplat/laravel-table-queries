@@ -1,10 +1,7 @@
 <?php
 
-
 use App\Library\Query\TableQueryBuilder;
-use App\Note;
 use App\Worker;
-use Carbon\Carbon;
 
 class ExampleTableQuery
 {
@@ -25,7 +22,6 @@ class ExampleTableQuery
             $q->where('consumer_id', 11);
         }]);
 
-
         /// new instance of Table Query is created
         $results = (new TableQueryBuilder($query))
             // search sort options
@@ -36,9 +32,9 @@ class ExampleTableQuery
             ->setFields($this->getSearchableFields())
             ->get(); // instance of builder is returned
 
-
         /// at this point you can do whatever you need to do with the query
         $results = $results->paginate();
+
         return $results;
     }
 
@@ -72,5 +68,4 @@ class ExampleTableQuery
             'phone',
         ];
     }
-
 }

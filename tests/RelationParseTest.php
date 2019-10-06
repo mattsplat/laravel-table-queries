@@ -1,8 +1,6 @@
 <?php
 
-
 namespace MattSplat\TableQueries\Tests;
-
 
 use MattSplat\TableQueries\TableRelation;
 use PHPUnit\Framework\TestCase;
