@@ -1,7 +1,5 @@
 <?php
 
-
-
 use Faker\Generator as Faker;
 use Spatie\QueryBuilder\Tests\TestClasses\Models\TestModel;
 

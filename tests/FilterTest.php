@@ -1,9 +1,6 @@
 <?php
 
-
 namespace MattSplat\TableQueries\Tests;
-
-
 
 use MattSplat\TableQueries\TableFilter;
 use MattSplat\TableQueries\Tests\TestClasses\Models\TestModel;
@@ -54,7 +51,7 @@ class FilterTest extends TestCase
     /** @test */
     public function it_parses_int_value_with_custom_delimiter()
     {
-        $filter = new TableFilter('really_bad_name^>^21','^');
+        $filter = new TableFilter('really_bad_name^>^21', '^');
 
         return $this->assertEquals(21, $filter->value);
     }
