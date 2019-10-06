@@ -1,10 +1,10 @@
 <?php
 
-
 namespace MattSplat\TableQueries\Tests\TestClasses\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
 class RelatedThroughPivotModel extends Model
 {
     protected $guarded = [];
