@@ -2,19 +2,39 @@
 
 namespace MattSplat\TableQueries;
 
+/**
+ * Class TableFilter
+ * @package MattSplat\TableQueries
+ */
 class TableFilter
 {
+    /**
+     * @var
+     */
     public $operator;
+    /**
+     * @var
+     */
     public $column;
+    /**
+     * @var
+     */
     public $value;
+    /**
+     * @var callable|null
+     */
+    protected $query = null;
 
+    /**
+     * @var array
+     */
     protected $allowedOperators = [
-        'gt'  => '>',
+        'gt' => '>',
         'gte' => '>=',
-        'eq'  => '=',
+        'eq' => '=',
         'lte' => '<=',
-        'lt'  => '<',
-        'ne'  => '!=',
+        'lt' => '<',
+        'ne' => '!=',
         'like',
         'in',
         'nin' => 'not in',
@@ -22,11 +42,30 @@ class TableFilter
         'rlike',
     ];
 
-    public function __construct(string $filter, $delimiter = ';')
+
+    /**
+     * TableFilter constructor.
+     * @param $filter
+     * @param string $delimiter
+     * @throws \Exception
+     */
+    public function __construct($filter, $delimiter = ';')
     {
-        $this->parseFilterString($filter, $delimiter);
+        if (is_string($filter)) {
+            $this->parseFilterString($filter, $delimiter);
+        } elseif (is_callable($filter)) {
+            $this->query = $filter;
+        } else {
+            throw new \Exception('Invalid Filter');
+        }
+
     }
 
+    /**
+     * @param $filter
+     * @param $delimiter
+     * @throws \Exception
+     */
     protected function parseFilterString($filter, $delimiter)
     {
         $filter = strtolower($filter);
@@ -52,8 +91,15 @@ class TableFilter
         }
     }
 
+    /**
+     * @param $query
+     * @return mixed
+     */
     public function toQuery($query)
     {
+        if ($this->query) {
+            return $this->query($query);
+        }
         if ($this->operator === 'between') {
             return $query->whereBetween($this->column, [$this->value['start'], $this->value['end']]);
         }

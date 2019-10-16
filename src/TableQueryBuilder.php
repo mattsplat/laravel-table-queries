@@ -72,9 +72,9 @@ class TableQueryBuilder
     /**
      * @param $relational
      *
+     * @return $this
      * @throws Exception
      *
-     * @return $this
      */
     public function setRelational($relational)
     {
@@ -115,8 +115,6 @@ class TableQueryBuilder
         $this->build();
         $this->search();
         $this->applyFilters();
-
-        //$this->paginate();
         $this->order();
 
         $results = $this->tableQuery;
@@ -136,7 +134,7 @@ class TableQueryBuilder
     }
 
     /**
-     * @param null   $searchString
+     * @param null $searchString
      * @param string $byColumn
      */
     protected function search($searchString = null, string $byColumn = '')
@@ -148,42 +146,59 @@ class TableQueryBuilder
         }
     }
 
+    /**
+     * for filters base64 decoded
+     * @return $this
+     */
+    protected function decodeFilters()
+    {
+        if (empty($this->options['filters'])) {
+            $this->options['filters'] = [];
+        }
+
+        $this->options['filters'] = json_decode(base64_decode($this->options['filters']), true);
+
+        return $this;
+    }
+
+    /**
+     *
+     */
     protected function applyFilters()
     {
         if (empty($this->options['filters']) || !is_array($this->options['filters'])) {
             return;
         }
+
         foreach ($this->options['filters'] as $column => $filter) {
-            $this->tableQuery = $this->filterByColumn($filter, $column);
+            if ($filter instanceof TableFilter) {
+                $this->handleFilter($filter);
+            } else {
+                $filter = $this->checkFilterRelation($filter);
+                $this->handleFilter(new TableFilter($filter));
+            }
         }
     }
 
     /**
-     * @param $search
-     * @param $column
-     *
-     * @return Builder
+     * @param $filter
+     * @throws Exception
      */
-    protected function filterByColumn($filter, $column)
+    protected function handleFilter(TableFilter $filter)
     {
-        return $this->tableQuery->where(function ($q) use ($filter, $column) {
-            if (!is_numeric($column) && is_string($filter)) {
-                if (in_array($column, $this->fields)) {
-                    $q->where($this->modelTable.'.'.$column, 'LIKE', "%{$filter}%");
-                } elseif ($key = array_search($column, array_column($this->relations, $column))) {
-                    $relation = $this->relations[$key];
-                    $q->where($relation['table'].'.'.$relation['column'], 'LIKE', "%{$filter}%");
-                }
-            } elseif (is_numeric($column) && is_string($filter)) {
-                $this->handleFilter($column);
-            }
-        });
+        $this->tableQuery = $filter->toQuery($this->tableQuery);
     }
 
-    protected function handleFilter($filter)
+    protected function checkFilterRelation($filter)
     {
-        $filter = new TableFilter($filter);
-        $this->tableQuery = $filter->toQuery($this->tableQuery);
+        $column = explode(';', $filter)[0];
+
+        if (in_array($column, $this->fields)) {
+            $full = $this->modelTable . '.'.$column;
+            return str_replace($column, $full, $filter);
+        }
+
+        return $filter;
     }
 
     /**
@@ -195,11 +210,11 @@ class TableQueryBuilder
             if (is_string($search)) {
                 foreach ($this->fields as $index => $field) {
                     if (is_numeric($index)) {
-                        $q->orWhere($this->modelTable.'.'.$field, 'LIKE', "%{$search}%");
+                        $q->orWhere($this->modelTable . '.' . $field, 'LIKE', "%{$search}%");
                     }
                 }
                 foreach ($this->relations as $relation) {
-                    $q->orWhere($relation->table.'.'.$relation->column, 'LIKE', "%{$search}%");
+                    $q->orWhere($relation->table . '.' . $relation->column, 'LIKE', "%{$search}%");
                 }
             }
         });
@@ -214,7 +229,7 @@ class TableQueryBuilder
             return;
         }
 
-        $this->tableQuery->select($this->modelTable.'.*');
+        $this->tableQuery->select($this->modelTable . '.*');
 
         foreach ($this->relations as $relation) {
             $this->tableQuery = $relation->addRelationalQuery($this->tableQuery);
@@ -257,9 +272,9 @@ class TableQueryBuilder
     {
         $ascending = $ascending ?? $this->options['ascending'] ?? null;
 
-        $orderBy = $orderBy ?? $this->options['orderBy'] ?? $this->modelTable.'.created_at';
+        $orderBy = $orderBy ?? $this->options['orderBy'] ?? $this->modelTable . '.created_at';
         if (in_array($orderBy, $this->fields)) {
-            $orderBy = $this->modelTable.'.'.$orderBy;
+            $orderBy = $this->modelTable . '.' . $orderBy;
         }
 
         $direction = ($ascending === 'true' || $ascending === true) ? 'ASC' : 'DESC';
@@ -284,17 +299,5 @@ class TableQueryBuilder
         return $this;
     }
 
-    /**
-     * @return $this
-     */
-    protected function decodeFilters()
-    {
-        if (empty($this->options['filters'])) {
-            $this->options['filters'] = [];
-        }
 
-        $this->options['filters'] = json_decode(base64_decode($this->options['filters']), true);
-
-        return $this;
-    }
 }
