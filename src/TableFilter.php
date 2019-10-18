@@ -2,6 +2,8 @@
 
 namespace MattSplat\TableQueries;
 
+use Exception;
+
 /**
  * Class TableFilter
  * @package MattSplat\TableQueries
@@ -25,6 +27,9 @@ class TableFilter
      */
     protected $query = null;
 
+
+    protected $table;
+
     /**
      * @var array
      */
@@ -46,17 +51,21 @@ class TableFilter
     /**
      * TableFilter constructor.
      * @param $filter
+     * @param array $fields
+     * @param string $table
      * @param string $delimiter
-     * @throws \Exception
+     * @throws Exception
      */
-    public function __construct($filter, $delimiter = ';')
+    public function __construct($filter, string $table, $delimiter = ';')
     {
+        $this->table = $table;
+
         if (is_string($filter)) {
             $this->parseFilterString($filter, $delimiter);
         } elseif (is_callable($filter)) {
             $this->query = $filter;
         } else {
-            throw new \Exception('Invalid Filter');
+            throw new Exception('Invalid Filter');
         }
 
     }
@@ -64,7 +73,7 @@ class TableFilter
     /**
      * @param $filter
      * @param $delimiter
-     * @throws \Exception
+     * @throws Exception
      */
     protected function parseFilterString($filter, $delimiter)
     {
@@ -83,7 +92,7 @@ class TableFilter
         }
         if (!in_array($this->operator, $this->allowedOperators) &&
             (!in_array($this->operator, array_keys($this->allowedOperators)) || is_numeric($this->operator))) {
-            throw new \Exception("Invalid Filter Format {$filter}");
+            throw new Exception("Invalid Filter Format {$filter}");
         }
 
         if (in_array($this->operator, array_keys($this->allowedOperators), 1)) {
@@ -100,10 +109,19 @@ class TableFilter
         if ($this->query) {
             return $this->query($query);
         }
-        if ($this->operator === 'between') {
-            return $query->whereBetween($this->column, [$this->value['start'], $this->value['end']]);
+        if(strpos($this->column, $this->table.'.') === 0) {
+            if ($this->operator === 'between') {
+                return $query->whereBetween($this->column, [$this->value['start'], $this->value['end']]);
+            }
+
+            return $query->where($this->column, $this->operator, $this->value);
+        } else {
+            if ($this->operator === 'between') {
+                return $query->havingBetween($this->column, [$this->value['start'], $this->value['end']]);
+            }
+
+            return $query->having($this->column, $this->operator, $this->value);
         }
 
-        return $query->where($this->column, $this->operator, $this->value);
     }
 }

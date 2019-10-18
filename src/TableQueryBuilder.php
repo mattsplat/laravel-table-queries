@@ -175,7 +175,7 @@ class TableQueryBuilder
                 $this->handleFilter($filter);
             } else {
                 $filter = $this->checkFilterRelation($filter);
-                $this->handleFilter(new TableFilter($filter));
+                $this->handleFilter(new TableFilter($filter, $this->modelTable));
             }
         }
     }
@@ -189,6 +189,13 @@ class TableQueryBuilder
         $this->tableQuery = $filter->toQuery($this->tableQuery);
     }
 
+
+    /**
+     * We check if the column to be sorted is on the parent table and add to prevent duplicate columns
+     * and determine if we use where or having
+     * @param $filter
+     * @return mixed
+     */
     protected function checkFilterRelation($filter)
     {
         $column = explode(';', $filter)[0];
@@ -214,8 +221,10 @@ class TableQueryBuilder
                     }
                 }
                 foreach ($this->relations as $relation) {
-                    $q->orWhere($relation->table . '.' . $relation->column, 'LIKE', "%{$search}%");
+
+                    $q->orHaving($relation->as, 'LIKE', "%{$search}%");
                 }
+
             }
         });
     }
@@ -230,6 +239,7 @@ class TableQueryBuilder
         }
 
         $this->tableQuery->select($this->modelTable . '.*');
+
 
         foreach ($this->relations as $relation) {
             $this->tableQuery = $relation->addRelationalQuery($this->tableQuery);
