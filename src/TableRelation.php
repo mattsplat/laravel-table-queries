@@ -71,13 +71,15 @@ class TableRelation
         if(!$tableQuery) {
             throw new \Exception("Table Query null");
         }
+
         if (is_callable($this->column)) {
-            if ("Illuminate\Database\Eloquent\Relations\BelongsTo") {
+            if ($this->type === "Illuminate\Database\Eloquent\Relations\BelongsTo") {
                 $query = $this->model::query()->whereColumn(
                     $this->parentModel->qualifyColumn($this->foreignKey),
                     $this->model->qualifyColumn($this->primaryKey)
                 );
             } else {
+
                 $query = $this->model::query()->whereColumn(
                     $this->parentModel->qualifyColumn($this->primaryKey),
                     $this->model->qualifyColumn($this->foreignKey)
