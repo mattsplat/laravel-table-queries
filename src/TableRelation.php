@@ -67,23 +67,37 @@ class TableRelation
 
     public function addRelationalQuery($tableQuery)
     {
-        if(!$tableQuery) dd($this);
+
+        if(!$tableQuery) {
+            throw new \Exception("Table Query null");
+        }
         if (is_callable($this->column)) {
-            $query = $this->model::query()->whereColumn(
-                $this->model->qualifyColumn($this->primaryKey),
-                $this->model->qualifyColumn($this->foreignKey)
-            );
+            if ("Illuminate\Database\Eloquent\Relations\BelongsTo") {
+                $query = $this->model::query()->whereColumn(
+                    $this->parentModel->qualifyColumn($this->foreignKey),
+                    $this->model->qualifyColumn($this->primaryKey)
+                );
+            } else {
+                $query = $this->model::query()->whereColumn(
+                    $this->parentModel->qualifyColumn($this->primaryKey),
+                    $this->model->qualifyColumn($this->foreignKey)
+                );
+            }
+
 
             $subQuery = ($this->column)($query);
             $tableQuery->selectSub($subQuery->limit(1), $this->as);
+
         } else {
             // add the related column to the select 'location|name as location',
             $type = $this->getRelationType($this->relation);
             if ($type === "Illuminate\Database\Eloquent\Relations\HasMany") {
+
                 $tableQuery = $this->hasMany($tableQuery);
             } else if ("Illuminate\Database\Eloquent\Relations\BelongsTo") {
-
                 $tableQuery = $this->belongsTo($tableQuery);
+            } else {
+
             }
 
         }
@@ -118,6 +132,7 @@ class TableRelation
         $select = $this->getSelect();
 
         $tableQuery->addSelect($select);
+
         // if join is already made don't add duplicate
         if (!$tableQuery->getQuery()->joins || !collect($tableQuery->getQuery()->joins)->contains('table', $this->table)) {
             return $tableQuery->leftJoin(
@@ -127,5 +142,7 @@ class TableRelation
                 $this->model->qualifyColumn($this->primaryKey)
             );
         }
+
+        return $tableQuery;
     }
 }
