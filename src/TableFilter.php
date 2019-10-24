@@ -2,19 +2,44 @@
 
 namespace MattSplat\TableQueries;
 
+use Exception;
+
+/**
+ * Class TableFilter
+ * @package MattSplat\TableQueries
+ */
 class TableFilter
 {
+    /**
+     * @var
+     */
     public $operator;
+    /**
+     * @var
+     */
     public $column;
+    /**
+     * @var
+     */
     public $value;
+    /**
+     * @var callable|null
+     */
+    protected $query = null;
 
+
+    protected $table;
+
+    /**
+     * @var array
+     */
     protected $allowedOperators = [
-        'gt'  => '>',
+        'gt' => '>',
         'gte' => '>=',
-        'eq'  => '=',
+        'eq' => '=',
         'lte' => '<=',
-        'lt'  => '<',
-        'ne'  => '!=',
+        'lt' => '<',
+        'ne' => '!=',
         'like',
         'in',
         'nin' => 'not in',
@@ -22,11 +47,34 @@ class TableFilter
         'rlike',
     ];
 
-    public function __construct(string $filter, $delimiter = ';')
+
+    /**
+     * TableFilter constructor.
+     * @param $filter
+     * @param array $fields
+     * @param string $table
+     * @param string $delimiter
+     * @throws Exception
+     */
+    public function __construct($filter, string $table, $delimiter = ';')
     {
-        $this->parseFilterString($filter, $delimiter);
+        $this->table = $table;
+
+        if (is_string($filter)) {
+            $this->parseFilterString($filter, $delimiter);
+        } elseif (is_callable($filter)) {
+            $this->query = $filter;
+        } else {
+            throw new Exception('Invalid Filter');
+        }
+
     }
 
+    /**
+     * @param $filter
+     * @param $delimiter
+     * @throws Exception
+     */
     protected function parseFilterString($filter, $delimiter)
     {
         $filter = strtolower($filter);
@@ -44,7 +92,7 @@ class TableFilter
         }
         if (!in_array($this->operator, $this->allowedOperators) &&
             (!in_array($this->operator, array_keys($this->allowedOperators)) || is_numeric($this->operator))) {
-            throw new \Exception("Invalid Filter Format {$filter}");
+            throw new Exception("Invalid Filter Format {$filter}");
         }
 
         if (in_array($this->operator, array_keys($this->allowedOperators), 1)) {
@@ -52,12 +100,28 @@ class TableFilter
         }
     }
 
+    /**
+     * @param $query
+     * @return mixed
+     */
     public function toQuery($query)
     {
-        if ($this->operator === 'between') {
-            return $query->whereBetween($this->column, [$this->value['start'], $this->value['end']]);
+        if ($this->query) {
+            return $this->query($query);
+        }
+        if(strpos($this->column, $this->table.'.') === 0) {
+            if ($this->operator === 'between') {
+                return $query->whereBetween($this->column, [$this->value['start'], $this->value['end']]);
+            }
+
+            return $query->where($this->column, $this->operator, $this->value);
+        } else {
+            if ($this->operator === 'between') {
+                return $query->havingBetween($this->column, [$this->value['start'], $this->value['end']]);
+            }
+
+            return $query->having($this->column, $this->operator, $this->value);
         }
 
-        return $query->where($this->column, $this->operator, $this->value);
     }
 }
