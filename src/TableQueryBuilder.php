@@ -215,14 +215,23 @@ class TableQueryBuilder
     {
         $this->tableQuery->where(function ($q) use ($search) {
             if (is_string($search)) {
+
                 foreach ($this->fields as $index => $field) {
                     if (is_numeric($index)) {
                         $q->orWhere($this->modelTable . '.' . $field, 'LIKE', "%{$search}%");
                     }
                 }
-                foreach ($this->relations as $relation) {
 
-                    $q->orHaving($relation->as, 'LIKE', "%{$search}%");
+                if (count($this->relations) > 0) {
+                    $having_query = clone $this->tableQuery;
+
+                    foreach ($this->relations as $relation) {
+                        $having_query->orHaving($relation->as, 'LIKE', "%{$search}%");
+                    }
+
+                    $wrapper_query = DB::query()->select('having_query' . '.id as id')->fromSub($having_query, 'having_query');
+
+                    $q->orWhereIn($this->modelTable . '.id', $wrapper_query);
                 }
 
             }
