@@ -4,6 +4,8 @@ namespace MattSplat\TableQueries;
 
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+
 
 /**
  * Class TableQueryBuilder.
